@@ -1,0 +1,40 @@
+#Global fast calorimetry parameters
+
+PSet Calorimetry =
+{
+	PSet ECAL = 
+	{
+   	int32 GridSize = 7 
+	double FrontLeakageProbability = 1.
+        double GapLossProbability = 0.9
+#SpotFraction < 0 <=> deactivated. In the case, CoreIntervals and 
+#TailIntervals are used   
+        double SpotFraction = -1.
+	untracked bool Debug = false 
+
+# For the core 10% of the spots for
+	vdouble CoreIntervals = {
+          100.,
+	  0.1}
+# For the tail 10% of r<1RM. 100% otherwise
+	vdouble TailIntervals = {
+	  1.,
+	  0.1,
+	  100,
+	  1.}
+	}
+
+  PSet CalorimeterProperties = 
+	{
+	double PreshowerLayer1_mipsPerGeV = 35.7
+	double PreshowerLayer1_thickness = 1.6
+	double PreshowerLayer2_mipsPerGeV = 59.5
+        double PreshowerLayer2_thickness = 0.38
+	double ECALBarrel_LightCollection = 0.030
+	double ECALEndcap_LightCollection = 0.023
+## Watch out ! The following two values are defined wrt the electron shower simulation
+## There are not directly related to the detector properties
+	double HCAL_PiOverE = 0.2
+	double HCAL_Sampling = 0.0035
+        }
+}
