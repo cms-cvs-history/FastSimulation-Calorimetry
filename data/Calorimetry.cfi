@@ -43,7 +43,7 @@ PSet Calorimetry =
 	{
 	int32 SimOption = 1 # 0 - simple response, 1 - parametrized response
 	int32 GridSize = 7
-	int32 SimMethod = 1 # 0 - use HDShower, 1 - use HDRShower
+	int32 SimMethod = 0 # 0 - use HDShower, 1 - use HDRShower
 	}
 	
   
