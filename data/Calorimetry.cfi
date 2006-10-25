@@ -23,6 +23,7 @@ PSet Calorimetry =
 	  0.1,
 	  100,
 	  1.}
+	double RadiusFactor = 1.096
 	}
 
   PSet CalorimeterProperties = 
