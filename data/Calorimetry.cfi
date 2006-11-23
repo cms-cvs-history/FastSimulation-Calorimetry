@@ -49,4 +49,5 @@ PSet Calorimetry =
 	
   
 	include "FastSimulation/Calorimetry/data/HcalResponse.cfi"
+	include "FastSimulation/Calorimetry/data/HSParameters.cfi"
 }
