@@ -23,7 +23,12 @@ PSet Calorimetry =
 	  0.1,
 	  100,
 	  1.}
+        // change globally the Moliere radius 
 	double RadiusFactor = 1.096
+	// change the radius of the core of the shower
+	double RCFactor = 1.
+	// change the radius of the tail of the shower
+	double RTFactor = 1.
 	}
 
   PSet CalorimeterProperties = 
