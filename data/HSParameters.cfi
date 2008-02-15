@@ -9,4 +9,5 @@ PSet HSParameters =
 	double criticalHDEnergy = 3.
 	double maxTRfactor = 4.
 	double balanceEH = 0.9
+        double hcalDepthFactor = 1.10
 }
