@@ -2,6 +2,7 @@
 
 PSet Calorimetry =
 {
+	untracked bool UnfoldedMode = false
 
 	PSet ECAL = 
 	{
