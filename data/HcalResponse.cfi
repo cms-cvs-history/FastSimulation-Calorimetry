@@ -1,3 +1,5 @@
+block HCALResponseBlock = {
+
 PSet HCALResponse = 
 {
 	double HadronBarrelResolution_Stochastic = 1.22
@@ -30,4 +32,5 @@ PSet HCALResponse =
 
 	# If needed - add a smal energy to each hadron ...
 	double energyBias = 0.0
+}
 }

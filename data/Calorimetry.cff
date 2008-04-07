@@ -1,4 +1,7 @@
 #Global fast calorimetry parameters
+include "FastSimulation/Calorimetry/data/HcalResponse.cfi"
+include "FastSimulation/Calorimetry/data/HSParameters.cfi"
+
 
 PSet Calorimetry =
 {
@@ -55,6 +58,6 @@ PSet Calorimetry =
 	}
 	
   
-	include "FastSimulation/Calorimetry/data/HcalResponse.cfi"
-	include "FastSimulation/Calorimetry/data/HSParameters.cfi"
+        using HCALResponseBlock
+        using HSParameterBlock
 }
