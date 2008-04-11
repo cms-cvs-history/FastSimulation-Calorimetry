@@ -2,9 +2,9 @@
 include "FastSimulation/Calorimetry/data/HcalResponse.cfi"
 include "FastSimulation/Calorimetry/data/HSParameters.cfi"
 
-
-PSet Calorimetry =
-{
+block FamosCalorimetryBlock = {
+  PSet Calorimetry =
+  {
 	untracked bool UnfoldedMode = false
 
 	PSet ECAL = 
@@ -60,4 +60,5 @@ PSet Calorimetry =
   
         using HCALResponseBlock
         using HSParameterBlock
+  }
 }
