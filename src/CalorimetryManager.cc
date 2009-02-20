@@ -25,6 +25,7 @@
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDetId/interface/EEDetId.h"
+#include "FastSimulation/Event/interface/FSimTrackEqual.h"
 
 // STL headers 
 #include <vector>
@@ -138,7 +139,7 @@ void CalorimetryManager::clean()
   firedCellsHCAL_.clear();
 
   ESMapping_.clear();
-
+  muonSimTracks.clear();
 }
 
 CalorimetryManager::~CalorimetryManager()
@@ -945,6 +946,10 @@ void CalorimetryManager::MuonMipSimulation(const FSimTrack& myTrack)
   if(ifirstHcal>=0)
     hcalEntrance=segments[ifirstHcal].entrance();
 
+  // dummy HCAL exit, just to test the FSimTrack saving mechanism
+  math::XYZVector hcalExit;
+  if(ifirstHcal>=0)
+    hcalExit=segments[ifirstHcal].exit();
 
   // Build the FAMOS HCAL 
   HcalHitMaker myHcalHitMaker(myGrid,(unsigned)2);     
@@ -956,6 +961,13 @@ void CalorimetryManager::MuonMipSimulation(const FSimTrack& myTrack)
   
 
   
+  // Copy the muon SimTrack
+  FSimTrack muonTrack(myTrack);
+  muonTrack.setTkPosition(hcalExit);
+  // The momentum should also be updated
+  // muonTrack.setTkMomentum();
+  muonSimTracks.push_back(myTrack);
+
 
   // no need to change below this line
   std::map<unsigned,float>::const_iterator mapitr;
@@ -1226,4 +1238,35 @@ void CalorimetryManager::loadFromPreshower(edm::PCaloHitContainer & c) const
 	    }
 	}
     }
+}
+
+// The main danger in this method is to screw up to relationships between particles
+// So, the muon FSimTracks created by FSimEvent.cc are simply to be updated 
+void CalorimetryManager::loadMuonSimTracks(edm::SimTrackContainer &muons) const
+{
+  unsigned size=muons.size();
+  for(unsigned i=0; i<size;++i)
+    {
+      int id=muons[i].trackId();
+      if(abs(muons[i].type())!=13) continue;
+      // identify the corresponding muon in the local collection
+
+      std::vector<FSimTrack>::const_iterator itcheck=find_if(muonSimTracks.begin(),muonSimTracks.end(),FSimTrackEqual(id));
+      if(itcheck!=muonSimTracks.end())
+	{
+	  muons[i].setTkPosition(itcheck->trackerSurfacePosition());
+	  muons[i].setTkMomentum(itcheck->trackerSurfaceMomentum());
+//	  std::cout << " Found the SimTrack " << std::endl;
+//	  std::cout << *itcheck << std::endl;
+//	  std::cout << "SimTrack Id "<< id << " " << muons[i] << " " << std::endl;
+	}
+//      else
+//	{
+//	  std::cout << " Calorimetery Manager : this should really not happen " << std::endl;
+//	  std::cout << " Was looking for " << id << " " << muons[i] << std::endl;
+//	  for(unsigned i=0;i<muonSimTracks.size();++i)
+//	    std::cout << muonSimTracks[i] << std::endl;
+//	}
+    }
+
 }

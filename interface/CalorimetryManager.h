@@ -8,6 +8,7 @@
 #include "FastSimulation/Calorimetry/interface/HCALResponse.h"
 #include "DataFormats/DetId/interface/DetId.h"
 #include "FastSimulation/Utilities/interface/FamosDebug.h"
+#include "SimDataFormats/Track/interface/SimTrackContainer.h"
 
 // For the uint32_t
 //#include <boost/cstdint.hpp>
@@ -50,6 +51,8 @@ class CalorimetryManager{
   void loadFromHcal(edm::PCaloHitContainer & c) const;
 
   void loadFromPreshower(edm::PCaloHitContainer & c) const;
+
+  void loadMuonSimTracks(edm::SimTrackContainer & m) const;
 
  private:
   // Simulation of electromagnetic showers in PS, ECAL, HCAL
@@ -126,5 +129,7 @@ class CalorimetryManager{
 
   static std::vector<std::pair<int, float> > myZero_;
   bool initialized_;
+
+  std::vector<FSimTrack> muonSimTracks;
 };
 #endif
