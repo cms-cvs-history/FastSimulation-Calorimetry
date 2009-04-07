@@ -26,6 +26,9 @@
 #include "DataFormats/EcalDetId/interface/EBDetId.h"
 #include "DataFormats/EcalDetId/interface/EEDetId.h"
 #include "FastSimulation/Event/interface/FSimTrackEqual.h"
+// New headers for Muon Mip Simulation
+#include "FastSimulation/MaterialEffects/interface/MaterialEffects.h"
+#include "FastSimulation/MaterialEffects/interface/EnergyLossSimulator.h"
 
 // STL headers 
 #include <vector>
@@ -54,10 +57,13 @@ CalorimetryManager::CalorimetryManager() :
 
 CalorimetryManager::CalorimetryManager(FSimEvent * aSimEvent, 
 				       const edm::ParameterSet& fastCalo,
+				       const edm::ParameterSet& fastMuECAL,
+				       const edm::ParameterSet& fastMuHCAL,
 				       const RandomEngine* engine)
   : 
   mySimEvent(aSimEvent), 
-  random(engine),initialized_(false)
+  random(engine),initialized_(false),
+  theMuonEcalEffects(0), theMuonHcalEffects (0)
 
 {
 
@@ -112,6 +118,21 @@ CalorimetryManager::CalorimetryManager(FSimEvent * aSimEvent,
   myHSParameters_ = 
     new HSParameters(fastCalo.getParameter<edm::ParameterSet>("HSParameters"));
 
+  // Material Effects for Muons in ECAL (only EnergyLoss implemented so far)
+
+  if ( fastMuECAL.getParameter<bool>("PairProduction") || 
+       fastMuECAL.getParameter<bool>("Bremsstrahlung") ||
+       fastMuECAL.getParameter<bool>("EnergyLoss") || 
+       fastMuECAL.getParameter<bool>("MultipleScattering") )
+    theMuonEcalEffects = new MaterialEffects(fastMuECAL,random);
+
+  // Material Effects for Muons in HCAL (only EnergyLoss implemented so far)
+
+  if ( fastMuHCAL.getParameter<bool>("PairProduction") || 
+       fastMuHCAL.getParameter<bool>("Bremsstrahlung") ||
+       fastMuHCAL.getParameter<bool>("EnergyLoss") || 
+       fastMuHCAL.getParameter<bool>("MultipleScattering") )
+    theMuonHcalEffects = new MaterialEffects(fastMuHCAL,random);
 
 }
 
@@ -149,6 +170,10 @@ CalorimetryManager::~CalorimetryManager()
 #endif
   if(myCalorimeter_) delete myCalorimeter_;
   if(myHDResponse_) delete myHDResponse_;
+
+  if ( theMuonEcalEffects ) delete theMuonEcalEffects;
+  if ( theMuonHcalEffects ) delete theMuonHcalEffects;
+
 }
 
 void CalorimetryManager::reconstruct()
@@ -827,6 +852,15 @@ void CalorimetryManager::MuonMipSimulation(const FSimTrack& myTrack)
   //  TimeMe t(" FASTEnergyReconstructor::HDShower");
   XYZTLorentzVector moment = myTrack.momentum();
 
+  // Backward compatibility behaviour
+  if(!theMuonHcalEffects) 
+    {
+      if(myTrack.onHcal() || myTrack.onVFcal() ) 
+	reconstructHCAL(myTrack);
+
+      return;
+    }
+
   if(debug_)
     LogDebug("FastCalorimetry") << "CalorimetryManager::MuonMipSimulation - track param."
          << std::endl
@@ -914,14 +948,29 @@ void CalorimetryManager::MuonMipSimulation(const FSimTrack& myTrack)
   float totalX0Ecal=myGrid.ecalTotalX0();
   int ifirstHcal=-1;
   int ilastEcal=-1;
+  EnergyLossSimulator* energyLossECAL = 0;
+  if (theMuonEcalEffects) energyLossECAL = theMuonEcalEffects->energyLossSimulator();
+
   for(unsigned iseg=0;iseg<nsegments&&ifirstHcal<0;++iseg)
     {
       
       // in the ECAL, there are two types of segments: PbWO4 and GAP
       float segmentSizeinX0=segments[iseg].X0length();
+
       // Martijn - insert your computations here
-      float energy=0.1;
-      
+      float energy=0.0;
+      if (segmentSizeinX0>0.001 && segments[iseg].material()==CaloSegment::PbWO4 ) {
+	// The energy loss simulator
+	float charge = (float)(myTrack.charge());
+	ParticlePropagator theMuon(moment,trackPosition,charge,0);
+	theMuon.setID(-(int)charge*13);
+	if ( energyLossECAL ) { 
+	  energyLossECAL->updateState(theMuon, segmentSizeinX0);
+	  energy = energyLossECAL->deltaMom().E();
+	  moment -= energyLossECAL->deltaMom();
+	}
+      } 
+      // that's all for ECAL, Florian
       // Save the hit only if it is a crystal
       if(segments[iseg].material()==CaloSegment::PbWO4)
 	{
@@ -930,14 +979,15 @@ void CalorimetryManager::MuonMipSimulation(const FSimTrack& myTrack)
 	  myGrid.addHit(0.,0.);
 	  ilastEcal=iseg;
 	}
-      
+      // Check for end of loop:
       if(segments[iseg].material()==CaloSegment::HCAL)
 	{
 	  ifirstHcal=iseg;
 	}
     }
-
+  
   // Position of Ecal Exit
+  math::XYZVector ecalExit;
   if(ilastEcal>=0)
     math::XYZVector ecalExit=segments[ilastEcal].exit();
   
@@ -951,22 +1001,64 @@ void CalorimetryManager::MuonMipSimulation(const FSimTrack& myTrack)
   if(ifirstHcal>=0)
     hcalExit=segments[ifirstHcal].exit();
 
+
   // Build the FAMOS HCAL 
   HcalHitMaker myHcalHitMaker(myGrid,(unsigned)2);     
-  float mipenergy=0.1;
+  // float mipenergy=0.1;
   // Create the helix with the stepping helix propagator
   // to add a hit, just do
-  myHcalHitMaker.setSpotEnergy(mipenergy);
-  myHcalHitMaker.addHit(hcalEntrance);
-  
+  //  myHcalHitMaker.setSpotEnergy(mipenergy);
+  // myHcalHitMaker.addHit(hcalEntrance);
+  ///
+  /////
+  ////// TEMPORARY First attempt to include HCAL (with straight-line extrapolation): 
+  int ilastHcal=-1;
+  float mipenergy=0.0;
+  EnergyLossSimulator* energyLossHCAL = 0;
+  if (theMuonHcalEffects) energyLossHCAL = theMuonHcalEffects->energyLossSimulator();
+  if(ifirstHcal>0 && energyLossHCAL){
+    for(unsigned iseg=ifirstHcal;iseg<nsegments;++iseg)
+      {
+	float segmentSizeinX0=segments[iseg].X0length();
+	if (segmentSizeinX0>0.001 && segments[iseg].material()==CaloSegment::HCAL ) {
+	  // The energy loss simulator
+	  float charge = (float)(myTrack.charge());
+	  ParticlePropagator theMuon(moment,trackPosition,charge,0);
+	  theMuon.setID(-(int)charge*13);
+	  energyLossHCAL->updateState(theMuon, segmentSizeinX0);
+	  mipenergy = energyLossHCAL->deltaMom().E();
+	  moment -= energyLossHCAL->deltaMom();
+	  myHcalHitMaker.setSpotEnergy(mipenergy);
+	  myHcalHitMaker.addHit(segments[iseg].entrance());
+	} 
+	if(segments[iseg].material()==CaloSegment::HCAL)
+	  {
+	    ilastHcal=iseg;
+	  }
+      }
+  }
+  if(ilastHcal>=0) // Update hcalExit position from 'dummy' HCAL entrance to 'staight line' HCAL exit
+    hcalExit=segments[ilastHcal].exit();
 
-  
+  //////
+  /////
+  ////
+  ///
+  //
+
+
+
   // Copy the muon SimTrack
   FSimTrack muonTrack(myTrack);
-  muonTrack.setTkPosition(hcalExit);
-  // The momentum should also be updated
-  // muonTrack.setTkMomentum();
-  muonSimTracks.push_back(myTrack);
+  if(energyLossHCAL) {
+    muonTrack.setTkPosition(hcalExit);
+    muonTrack.setTkMomentum(moment);
+  } else if(energyLossECAL) {
+    muonTrack.setTkPosition(ecalExit);
+    muonTrack.setTkMomentum(moment);
+  } // else just leave tracker surface position and momentum...  
+
+  muonSimTracks.push_back(muonTrack);
 
 
   // no need to change below this line
@@ -980,12 +1072,10 @@ void CalorimetryManager::MuonMipSimulation(const FSimTrack& myTrack)
       if(onECAL==1)
 	{
 	  updateMap(EBDetId(mapitr->first).hashedIndex(),energy,myTrack.id(),EBMapping_,firedCellsEB_);
-	  std::cout << " Putting hit in ECAL Barrel " << energy << std::endl;
 	}      
       else if(onECAL==2)
 	{
 	  updateMap(EEDetId(mapitr->first).hashedIndex(),energy,myTrack.id(),EEMapping_,firedCellsEE_);
-	  std::cout << " Putting hit in ECAL Endcap " << energy << std::endl;
 	}
       
       if(debug_)
@@ -1000,7 +1090,6 @@ void CalorimetryManager::MuonMipSimulation(const FSimTrack& myTrack)
     double energy = mapitr->second;
     {
       updateMap(HcalDetId(mapitr->first).hashed_index(),energy,myTrack.id(),HMapping_,firedCellsHCAL_);
-      std::cout << " Putting hit in HCAL " << energy << std::endl;
     }
     if(debug_)
       LogDebug("FastCalorimetry") << " HCAL cell "  
@@ -1072,6 +1161,8 @@ void CalorimetryManager::readParameters(const edm::ParameterSet& fastCalo) {
   //RF
 
   unfoldedMode_ = fastCalo.getUntrackedParameter<bool>("UnfoldedMode",false);
+
+
 }
 
 

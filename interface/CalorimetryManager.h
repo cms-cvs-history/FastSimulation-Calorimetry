@@ -23,6 +23,8 @@ class HSParameters;
 class RandomEngine;
 class LandauFluctuationGenerator;
 class GammaFunctionGenerator;
+class MaterialEffects;
+
 
 namespace edm { 
   class ParameterSet;
@@ -34,6 +36,8 @@ class CalorimetryManager{
   CalorimetryManager();
   CalorimetryManager(FSimEvent* aSimEvent, 
 		     const edm::ParameterSet& fastCalo,
+		     const edm::ParameterSet& MuonECALPars,
+		     const edm::ParameterSet& MuonHCALPars,
 		     const RandomEngine* engine);
   ~CalorimetryManager();
 
@@ -131,5 +135,8 @@ class CalorimetryManager{
   bool initialized_;
 
   std::vector<FSimTrack> muonSimTracks;
+  MaterialEffects* theMuonEcalEffects; // material effects for muons in ECAL
+  MaterialEffects* theMuonHcalEffects; // material effects for muons in HCAL
+
 };
 #endif
