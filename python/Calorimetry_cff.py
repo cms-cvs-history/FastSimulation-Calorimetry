@@ -11,7 +11,13 @@ FamosCalorimetryBlock = cms.PSet(
             # If set to true the simulation in ECAL would be done 1X0 by 1X0
             # this is slow but more adapted to detailed studies.
             # Otherwise roughty 5 steps are used.
-            bFixedLength = cms.bool(False),
+            bFixedLength = cms.bool(True),
+            detailedShower = cms.bool(True),
+            # Those parameters are designed to take care of many layers ECAL
+            # if you use more than 2 layers change
+            # CaloGeometryHelper::getWindow
+            maxShootsLongitudinal = cms.int32(5),
+
     
             # For the core 10% of the spots for
             CoreIntervals = cms.vdouble(100.0, 0.1),

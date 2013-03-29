@@ -176,6 +176,9 @@ class CalorimetryManager{
   // Otherwise roughty 5 steps are used.
   // This variable is transferred to EMShower
   bool bFixedLength_;
+  bool detailedShower_;
+  int maxShootsLongitudinal_;
+
 
   //Gflash
   GflashHadronShowerProfile *theProfile;
