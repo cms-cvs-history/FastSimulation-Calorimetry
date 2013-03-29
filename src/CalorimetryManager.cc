@@ -100,8 +100,8 @@ CalorimetryManager::CalorimetryManager(FSimEvent * aSimEvent,
 //  HMapping_.resize(10000,myZero_);
   EBMapping_.resize(62000);
   EEMapping_.resize(20000);
-  HMapping_.resize(10000);
-  theDetIds_.resize(10000);
+  HMapping_.resize(HcalDetId::kSizeForDenseIndexing);
+  theDetIds_.resize(HcalDetId::kSizeForDenseIndexing);
 
   unsigned s=(unfoldedMode_)?5:1;
   for(unsigned ic=0;ic<62000;++ic)
@@ -109,7 +109,7 @@ CalorimetryManager::CalorimetryManager(FSimEvent * aSimEvent,
       EBMapping_[ic].reserve(s);
       if(ic<20000)
 	EEMapping_[ic].reserve(s);
-      if(ic<10000)
+      if(ic<HcalDetId::kSizeForDenseIndexing)
 	HMapping_[ic].reserve(s);
     }
 
